@@ -110,6 +110,16 @@ namespace IrcDotNet
                 // Get channel modes and list of mode parameters from message parameters.
                 Debug.Assert(message.Parameters[1] != null);
                 var modesAndParameters = GetModeAndParameters(message.Parameters.Skip(1));
+
+                // Twitch doesn't actually send JOIN messages.  This means we need to add users
+                // to the channel when changing their mode if we haven't already.
+                foreach (string username in modesAndParameters.Item2)
+                {
+                    IrcUser user = GetUserFromNickName(username);
+                    if (channel.GetChannelUser(user) == null)
+                        channel.HandleUserJoined(new IrcChannelUser(user));
+                }
+
                 channel.HandleModesChanged(message.Source as IrcUser, modesAndParameters.Item1,
                     modesAndParameters.Item2);
             }
@@ -302,12 +312,14 @@ namespace IrcDotNet
             Debug.Assert(message.Parameters[1] != null);
             this.WelcomeMessage = message.Parameters[1];
 
-            // Extract nick name, user name, and host name from welcome message. Use fallback info if not present.
-            var nickNameIdMatch = Regex.Match(this.WelcomeMessage.Split(' ').Last(), regexNickNameId);
-            this.localUser.NickName = nickNameIdMatch.Groups["nick"].GetValue() ?? this.localUser.NickName;
-            this.localUser.UserName = nickNameIdMatch.Groups["user"].GetValue() ?? this.localUser.UserName;
-            this.localUser.HostName = nickNameIdMatch.Groups["host"].GetValue() ?? this.localUser.HostName;
+            // Twitch does not send a normal welcome message, so this code is actually incorrect.
 
+            //// Extract nick name, user name, and host name from welcome message. Use fallback info if not present.
+            //var nickNameIdMatch = Regex.Match(this.WelcomeMessage.Split(' ').Last(), regexNickNameId);
+            //this.localUser.NickName = nickNameIdMatch.Groups["nick"].GetValue() ?? this.localUser.NickName;
+            //this.localUser.UserName = nickNameIdMatch.Groups["user"].GetValue() ?? this.localUser.UserName;
+            //this.localUser.HostName = nickNameIdMatch.Groups["host"].GetValue() ?? this.localUser.HostName;
+             
             this.isRegistered = true;
             OnRegistered(new EventArgs());
         }
@@ -347,14 +359,18 @@ namespace IrcDotNet
         {
             Debug.Assert(message.Parameters[0] == this.localUser.NickName);
 
-            Debug.Assert(message.Parameters[1] != null);
-            this.ServerName = message.Parameters[1];
-            Debug.Assert(message.Parameters[2] != null);
-            this.ServerVersion = message.Parameters[2];
-            Debug.Assert(message.Parameters[3] != null);
-            this.ServerAvailableUserModes = message.Parameters[3];
-            Debug.Assert(message.Parameters[4] != null);
-            this.ServerAvailableChannelModes = message.Parameters[4];
+            // Twitch doesn't seem to give us this information.
+            if (message.Parameters[1] != "-")
+            {
+                Debug.Assert(message.Parameters[1] != null);
+                this.ServerName = message.Parameters[1];
+                Debug.Assert(message.Parameters[2] != null);
+                this.ServerVersion = message.Parameters[2];
+                Debug.Assert(message.Parameters[3] != null);
+                this.ServerAvailableUserModes = message.Parameters[3];
+                Debug.Assert(message.Parameters[4] != null);
+                this.ServerAvailableChannelModes = message.Parameters[4];
+            }
 
             // All initial information about client has now been received.
             OnClientInfoReceived(new EventArgs());
@@ -1110,7 +1126,10 @@ namespace IrcDotNet
 
             Debug.Assert(message.Parameters[1] != null);
             this.motdBuilder.Clear();
-            this.motdBuilder.AppendLine(message.Parameters[1]);
+            
+            // Looks like the motd doesn't start on the start message for twitch.
+            if (message.Parameters[1] != "-")
+                this.motdBuilder.AppendLine(message.Parameters[1]);
         }
 
         /// <summary>

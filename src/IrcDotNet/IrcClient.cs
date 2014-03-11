@@ -834,8 +834,9 @@ namespace IrcDotNet
 
             if (message == null)
                 throw new ArgumentNullException("message");
-
-            WriteMessage(message);
+            
+            var messageSentEventArgs = new IrcRawMessageEventArgs(new IrcMessage(this, null, null, null), message);
+            WriteMessage(message, messageSentEventArgs);
         }
 
         #region Proxy Methods
