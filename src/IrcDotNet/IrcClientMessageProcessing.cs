@@ -242,6 +242,11 @@ namespace IrcDotNet
             Debug.Assert(message.Parameters[1] != null);
             var text = message.Parameters[1];
 
+            if (message.Parameters[1] != null && message.Parameters[1].Equals("Login unsuccessful", StringComparison.CurrentCultureIgnoreCase))
+            {
+                OnUnsuccessfulLogin(message.Source, targets);
+            }
+
             // Process notice for each given target.
             foreach (var curTarget in targets)
             {

@@ -526,6 +526,10 @@ namespace IrcDotNet
         /// </summary>
         public event EventHandler<EventArgs> ServerSupportedFeaturesReceived;
 
+        public delegate void UnsuccessfulLoginHandler(IrcClient source, IIrcMessageSource ircMessageSource, IIrcMessageTarget[] targets);
+
+        public event UnsuccessfulLoginHandler UnsuccessfulLogin;
+
         /// <summary>
         /// Occurs when a ping query is received from the server.
         /// The client automatically replies to pings from the server; this event is only a notification.
@@ -2394,6 +2398,14 @@ namespace IrcDotNet
             var handler = this.PingReceived;
             if (handler != null)
                 handler(this, e);
+        }
+
+
+        private void OnUnsuccessfulLogin(IIrcMessageSource ircMessageSource, IIrcMessageTarget[] targets)
+        {
+            var handler = this.UnsuccessfulLogin;
+            if (handler != null)
+                handler(this, ircMessageSource, targets);
         }
 
         /// <summary>
